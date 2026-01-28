@@ -67,6 +67,7 @@ export default function Home() {
   const [formBusy, setFormBusy] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [waActionId, setWaActionId] = useState<string | null>(null);
+  const [reportBusy, setReportBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -256,6 +257,37 @@ export default function Home() {
     }
   };
 
+  const handleDownloadReport = async () => {
+    setReportBusy(true);
+    setFeedback(null);
+    try {
+      const res = await fetch("/api/reports/attendance", {
+        credentials: "include",
+      });
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      if (!res.ok) throw new Error("Gagal menyiapkan PDF.");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `rekap-kehadiran-${new Date()
+        .toISOString()
+        .slice(0, 10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setError(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setReportBusy(false);
+    }
+  };
+
   const toggleConfirmAttendance = async (attendee: AttendeeRecord) => {
     setActionId(attendee.id);
     setFeedback(null);
@@ -370,6 +402,15 @@ export default function Home() {
                 className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300"
               >
                 Refresh data
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadReport}
+                disabled={reportBusy}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {reportBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Unduh PDF
               </button>
               <a
                 href="/scan"
