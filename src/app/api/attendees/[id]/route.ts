@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromSession } from "@/lib/auth";
-import { getAttendee, updateAttendee } from "@/lib/storage";
+import { deleteAttendee, getAttendee, updateAttendee } from "@/lib/storage";
 
 export async function GET(
   _req: NextRequest,
@@ -45,4 +45,26 @@ export async function PATCH(
   }
 
   return NextResponse.json(updated);
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const user = await getUserFromSession();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const existing = await getAttendee(id);
+  if (!existing) {
+    return NextResponse.json(
+      { message: "Data RSVP tidak ditemukan" },
+      { status: 404 }
+    );
+  }
+
+  await deleteAttendee(id);
+  return NextResponse.json({ status: "deleted", id });
 }

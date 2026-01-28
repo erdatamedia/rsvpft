@@ -20,6 +20,7 @@ import {
   QrCode,
   Send,
   Smartphone,
+  Trash2,
   Users,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -68,6 +69,7 @@ export default function Home() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [waActionId, setWaActionId] = useState<string | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -318,6 +320,39 @@ export default function Home() {
       setError((err as Error).message);
     } finally {
       setActionId(null);
+    }
+  };
+
+  const handleDeleteAttendee = async (attendee: AttendeeRecord) => {
+    const confirmed = window.confirm(
+      `Hapus peserta ${attendee.name}? Tindakan ini tidak dapat dibatalkan.`
+    );
+    if (!confirmed) return;
+
+    setDeleteId(attendee.id);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/attendees/${attendee.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Gagal menghapus peserta");
+
+      setAttendees((prev) => prev.filter((item) => item.id !== attendee.id));
+      setSelectedId((prev) => (prev === attendee.id ? null : prev));
+      setFeedback("Peserta dihapus.");
+      setError(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -821,6 +856,19 @@ export default function Home() {
                             {attendee.status === "confirmed"
                               ? "Batalkan"
                               : "Konfirmasi"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAttendee(attendee)}
+                            disabled={deleteId === attendee.id}
+                            className="inline-flex items-center rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {deleteId === attendee.id ? (
+                              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                            )}
+                            Hapus
                           </button>
                         </div>
                       </td>

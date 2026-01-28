@@ -172,3 +172,7 @@ export async function getAttendee(id: string) {
 export async function clearAttendees() {
   await query("delete from attendees");
 }
+
+export async function deleteAttendee(id: string) {
+  await query("delete from attendees where id=$1", [normalizeAttendeeId(id)]);
+}
